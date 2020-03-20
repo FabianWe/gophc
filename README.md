@@ -7,3 +7,5 @@ a "standard" for string encodings for the output of a password hashing function.
 gophc is a pure Go implementation of this standard.
 
 **Disclaimer**: No warranty or anything that it implements the standard 100%!
+
+**WARNING: UNDER CONSTRUCTION**
