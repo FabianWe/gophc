@@ -21,7 +21,7 @@ import "encoding/base64"
 
 // DefaultAlphabet is the alphabet used by most algorithms.
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-var bcEncoding = base64.NewEncoding(alphabet)
+var bcEncoding = base64.NewEncoding(alphabet).WithPadding(base64.NoPadding)
 
 // Base64Encode encodes the source to base64 using the alphabet.
 func Base64Encode(src []byte) []byte {
