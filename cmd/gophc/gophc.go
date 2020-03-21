@@ -50,4 +50,27 @@ func main() {
 		panic(decodeErr)
 	}
 	fmt.Println(*decoded)
+
+	argon2 := gophc.Argon2PHC{
+		Variant:     "argon2id",
+		Memory:      4096,
+		Iterations:  3,
+		Parallelism: 1,
+		KeyId:       "",
+		Data:        "",
+		Salt:        "PcEZHj1maR/+ZQynyJHWZg",
+		Hash:        "2jEN4xcww7CYp1jakZB1rxbYsZ55XH2HgjYRtdZtubI",
+	}
+	s2, argonErr := argon2.EncodeString()
+	if argonErr != nil {
+		panic(argonErr)
+	}
+	fmt.Println(s2)
+
+	argonDecoded, argonDecodeErr := gophc.DecodeArgon2PHC(s2)
+	if argonDecodeErr != nil {
+		panic(argonDecodeErr)
+	}
+	fmt.Println(argonDecoded)
+
 }

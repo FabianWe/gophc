@@ -15,6 +15,7 @@
 package gophc
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -22,9 +23,10 @@ import (
 	"strings"
 )
 
-const scryptPHCRegexString = `\$scrypt\$ln=(\d+),r=(\d+),p=(\d+)` + // prefix + options
+const scryptPHCRegexString = `^\$scrypt\$ln=` + phcPositiveDecimalRegexString +
+	`,r=` + phcPositiveDecimalRegexString + `,p=` + phcPositiveDecimalRegexString + // prefix + options
 	`\$(` + base64String + `)` + // salt
-	`\$(` + base64String + `)` // hash
+	`\$(` + base64String + `)$` // hash
 
 var scryptPHCRx = regexp.MustCompile(scryptPHCRegexString)
 
@@ -53,7 +55,7 @@ func (phc *ScryptPHC) EncodeString() (string, error) {
 func DecodeScryptPHC(input string) (*ScryptPHC, error) {
 	match := scryptPHCRx.FindStringSubmatch(input)
 	if len(match) == 0 {
-		// error
+		return nil, errors.New("input does not match scrypt format")
 	}
 	cost, costErr := strconv.Atoi(match[1])
 	if costErr != nil {
