@@ -15,7 +15,9 @@
 package gophc
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"strconv"
 )
@@ -25,11 +27,15 @@ const base64String = base64Char + `+`
 
 const phcDecimalRegexString = `(0|-[1-9]\d*|[1-9]\d*)`
 const phcDecimalRegex = `^` + phcDecimalRegexString + `$`
+
 var phcDecimalRx = regexp.MustCompile(phcDecimalRegex)
 
 const phcPositiveDecimalRegexString = `(0|[1-9]\d*)`
 const phcPositiveDecimalRegex = `^` + phcPositiveDecimalRegexString + `$`
+
 var phcPositiveDecimalRx = regexp.MustCompile(phcPositiveDecimalRegex)
+
+const maxInt = int(^uint(0) >> 1)
 
 func ParsePHCDecimal(input string) (int, error) {
 	match := phcDecimalRx.FindStringSubmatch(input)
@@ -45,4 +51,27 @@ func ParsePHCPositiveDecimal(input string) (int, error) {
 		return 0, fmt.Errorf("input \"%s\" isn't a valid positive decimal", input)
 	}
 	return strconv.Atoi(match[1])
+}
+
+func writeSaltAndHash(w io.Writer, salt, hash string) (int, error) {
+	if salt == "" {
+		// no need to write salt, but hash is not allowed to be not empty
+		if hash != "" {
+			return 0, errors.New("got empty salt but non-empty hash, this is not allowed")
+		}
+		return 0, nil
+	}
+	// write salt
+	res := 0
+	write, err := fmt.Fprint(w, "$", salt)
+	res += write
+	if err != nil {
+		return res, err
+	}
+	// write hash if required
+	if hash != "" {
+		write, err = fmt.Fprint(w, "$", hash)
+		res += write
+	}
+	return res, err
 }

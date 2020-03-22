@@ -32,24 +32,6 @@ func main() {
 	//}
 	//fmt.Println("Salt:", res.Salt)
 	//fmt.Println("Hash:", res.Hash)
-	scrypt := gophc.ScryptPHC{
-		Cost:        15,
-		BlockSize:   8,
-		Parallelism: 1,
-		Salt:        "D/EEcdfcBkj4DQB3zlfsFQ",
-		Hash:        "v9Xsag5AySIY78DFKslBzeRXCUfsLKCZ0Xm4Xwoh+J0",
-	}
-	s, err := scrypt.EncodeString()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(s)
-
-	decoded, decodeErr := gophc.DecodeScryptPHC(s)
-	if decodeErr != nil {
-		panic(decodeErr)
-	}
-	fmt.Println(*decoded)
 
 	argon2 := gophc.Argon2PHC{
 		Variant:     "argon2id",
@@ -73,4 +55,12 @@ func main() {
 	}
 	fmt.Println(argonDecoded)
 
+	hashStr := "4fXXG0spB92WPB1NitT8/OH0VKI"
+	decoded, err := gophc.Base64Decode([]byte(hashStr))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(decoded)
+	encoded := gophc.Base64Encode(decoded)
+	fmt.Println(string(encoded))
 }

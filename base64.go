@@ -14,13 +14,16 @@
 
 package gophc
 
-import "encoding/base64"
+import (
+	"encoding/base64"
+)
 
 // base64 provides the internal base64 encoding / decoding.
 // The base64 encoding / decoding is inspired by https://github.com/golang/crypto/blob/master/bcrypt/base64.go
 
 // DefaultAlphabet is the alphabet used by most algorithms.
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+
 var bcEncoding = base64.NewEncoding(alphabet).WithPadding(base64.NoPadding)
 
 // Base64Encode encodes the source to base64 using the alphabet.
@@ -28,18 +31,11 @@ func Base64Encode(src []byte) []byte {
 	n := bcEncoding.EncodedLen(len(src))
 	dst := make([]byte, n)
 	bcEncoding.Encode(dst, src)
-	for n > 0 && dst[n-1] == '=' {
-		n--
-	}
 	return dst[:n]
 }
 
 // Base64Decode decodes the source using the alphabet.
 func Base64Decode(src []byte) ([]byte, error) {
-	numOfEquals := 4 - (len(src) % 4)
-	for i := 0; i < numOfEquals; i++ {
-		src = append(src, '=')
-	}
 	dst := make([]byte, bcEncoding.DecodedLen(len(src)))
 	n, err := bcEncoding.Decode(dst, src)
 	if err != nil {

@@ -16,14 +16,21 @@ package gophc
 
 import (
 	"fmt"
+	"io"
 	"strings"
 	"unicode"
 )
 
+type PHCInstance interface {
+	Encode(w io.Writer)
+	EncodeString() (string, error)
+	ValidateParameters() error
+}
+
 type PHCParameterDescription struct {
-	Param string
+	Param     string
 	MaxLength int
-	Default string
+	Default   string
 }
 
 func (pd *PHCParameterDescription) IsOptional() bool {
@@ -31,7 +38,7 @@ func (pd *PHCParameterDescription) IsOptional() bool {
 }
 
 type PHCDescription struct {
-	Function string
+	Function   string
 	Parameters []*PHCParameterDescription
 }
 
@@ -40,7 +47,7 @@ type PHCParameterValuePair struct {
 }
 
 type PHC struct {
-	Function string
+	Function   string
 	Parameters []*PHCParameterValuePair
 	Salt, Hash string
 }
@@ -71,7 +78,6 @@ func alphanumericOrDigit(r byte) bool {
 func isValidValueByte(r byte) bool {
 	return alphanumericOrDigit(r) || r == '/' || r == '+' || r == '.' || r == '-'
 }
-
 
 func isValidValue(s string) bool {
 	if len(s) == 0 {
@@ -109,7 +115,7 @@ func isValidBase64Char(r byte) bool {
 
 func IsValidBase64String(s string) bool {
 	// check for mod 4: not allowed to be 1
-	if len(s) % 4 == 1 {
+	if len(s)%4 == 1 {
 		return false
 	}
 	if len(s) == 0 {
@@ -221,7 +227,7 @@ func readParameterValuePairs(input string, descriptions []*PHCParameterDescripti
 			// it is optional, add to result
 			pair := &PHCParameterValuePair{
 				Parameter: nextDescription.Param,
-				Value: "",
+				Value:     "",
 			}
 			res = append(res, pair)
 		}
@@ -230,11 +236,10 @@ func readParameterValuePairs(input string, descriptions []*PHCParameterDescripti
 
 	if nextEntryIndex < len(split) {
 		res = nil
-		err =  NewPHCError("got additional (invalid parameters) in input string")
+		err = NewPHCError("got additional (invalid parameters) in input string")
 		consumed = 0
 		return
 	}
-
 
 	if nextParamIndex < len(descriptions) {
 		// all remaining parameters must be optional
@@ -302,7 +307,7 @@ func (desc *PHCDescription) Parse(input string) (*PHC, error) {
 	}
 	consume()
 	res := &PHC{
-		Function: desc.Function,
+		Function:   desc.Function,
 		Parameters: make([]*PHCParameterValuePair, 0, len(desc.Parameters)),
 	}
 	// next consume all parameters (if any)
@@ -317,7 +322,7 @@ func (desc *PHCDescription) Parse(input string) (*PHC, error) {
 			// parameter is optional, append to result
 			pair := &PHCParameterValuePair{
 				Parameter: parameterDesc.Param,
-				Value: "",
+				Value:     "",
 			}
 			res.Parameters = append(res.Parameters, pair)
 		}

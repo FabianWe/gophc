@@ -21,7 +21,7 @@ import (
 
 func TestScryptEncode(t *testing.T) {
 	tests := []struct {
-		phc *gophc.ScryptPHC
+		phc      *gophc.ScryptPHC
 		expected string
 	}{
 		{
@@ -44,6 +44,28 @@ func TestScryptEncode(t *testing.T) {
 			},
 			"$scrypt$ln=20,r=16,p=2$abcdef$ghijkl",
 		},
+		{
+			&gophc.ScryptPHC{
+				Cost:        15,
+				BlockSize:   8,
+				Parallelism: 1,
+				Salt:        "D/EEcdfcBkj4DQB3zlfsFQ",
+				Hash:        "",
+			},
+			// if hash is empty it should not appear
+			"$scrypt$ln=15,r=8,p=1$D/EEcdfcBkj4DQB3zlfsFQ",
+		},
+		{
+			&gophc.ScryptPHC{
+				Cost:        15,
+				BlockSize:   8,
+				Parallelism: 1,
+				Salt:        "",
+				Hash:        "",
+			},
+			// if both salt and hash are empty they both should not appear
+			"$scrypt$ln=15,r=8,p=1",
+		},
 	}
 	for _, tc := range tests {
 		encoded, err := tc.phc.EncodeString()
@@ -60,7 +82,7 @@ func TestScryptEncode(t *testing.T) {
 
 func TestScryptDecode(t *testing.T) {
 	tests := []struct {
-		in string
+		in       string
 		expected *gophc.ScryptPHC
 	}{
 		{
