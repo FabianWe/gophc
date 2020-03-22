@@ -38,6 +38,14 @@ type ScryptPHC struct {
 	Hash string
 }
 
+func (phc *ScryptPHC) Equals(other *ScryptPHC) bool {
+	return phc.Cost == other.Cost &&
+		phc.BlockSize == other.BlockSize &&
+		phc.Parallelism == other.Parallelism &&
+		phc.Salt == other.Salt &&
+		phc.Hash == other.Hash
+}
+
 func (phc *ScryptPHC) Encode(w io.Writer) (int, error) {
 	return fmt.Fprintf(w, "$scrypt$ln=%d,r=%d,p=%d$%s$%s", phc.Cost, phc.BlockSize, phc.Parallelism,
 		phc.Salt, phc.Hash)
