@@ -37,6 +37,8 @@ var phcPositiveDecimalRx = regexp.MustCompile(phcPositiveDecimalRegex)
 
 const maxInt = int(^uint(0) >> 1)
 
+const argon2MaxSize uint64 = 4294967295
+
 func ParsePHCDecimal(input string) (int, error) {
 	match := phcDecimalRx.FindStringSubmatch(input)
 	if len(match) == 0 {

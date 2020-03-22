@@ -30,7 +30,7 @@ const scryptPHCRegexString = `^\$scrypt\$ln=` + phcPositiveDecimalRegexString +
 	`(?:\$(` + base64String + `))?` + // salt
 	`(?:\$(` + base64String + `))?$` // hash
 
-// 	scryptPHCRx is the compiled form of scryptPHCRegexString.
+// scryptPHCRx is the compiled form of scryptPHCRegexString.
 var scryptPHCRx = regexp.MustCompile(scryptPHCRegexString)
 
 // ScryptPHC contains all information to encode the data to a phc string.
@@ -38,6 +38,7 @@ var scryptPHCRx = regexp.MustCompile(scryptPHCRegexString)
 // Cost is the log2 of the N parameter of scrypt.
 // BlockSize and Parallelism are the r and p parameters.
 // Salt and Has are the base64 encoded strings of the salt and hash, not the raw bytes!
+// Note that according to the specification they're both optional.
 type ScryptPHC struct {
 	Cost        int
 	BlockSize   int
@@ -69,10 +70,15 @@ func (phc *ScryptPHC) ValidateParameters() error {
 }
 
 // Encode generates the string encoding in the form $scrypt$ln=<COST>,r=<BLOCKSIZE>p=<Parallelism>$<SALT>$<HASH>.
+//
 // The result is written to the writer w.
 // It returns the number of bytes written and any error that occurred.
+//
 // Note that this method does not validate the values of the parameters (if they're valid for scrypt).
 // Use ValidateParameters for that.
+//
+// It also assumes that the hash and salt string are the representation of the bytes in base64 (no
+// encoding / decoding hashes takes place here, see base64 functionality for that).
 func (phc *ScryptPHC) Encode(w io.Writer) (int, error) {
 	res := 0
 	write, writeErr := fmt.Fprintf(w, "$scrypt$ln=%d,r=%d,p=%d", phc.Cost, phc.BlockSize, phc.Parallelism)
@@ -87,6 +93,7 @@ func (phc *ScryptPHC) Encode(w io.Writer) (int, error) {
 }
 
 // EncodeString generates the encoding in the form $scrypt$ln=<COST>,r=<BLOCKSIZE>p=<Parallelism>$<SALT>$<HASH>.
+//
 // See Encode for more details.
 func (phc *ScryptPHC) EncodeString() (string, error) {
 	var builder strings.Builder
@@ -98,9 +105,11 @@ func (phc *ScryptPHC) EncodeString() (string, error) {
 }
 
 // DecodeScryptPHC reads a scrypt phc string and returns it as a ScryptPHC.
+//
 // This method will not validate the parameters, use ValidateParameters for that.
 // The Salt and Hash parts of the result are the strings taken from the input and not decoded with base64,
 // see base64 functions for that.
+//
 // Also note that both Hash and Salt are optional according to the phc definition.
 func DecodeScryptPHC(input string) (*ScryptPHC, error) {
 	match := scryptPHCRx.FindStringSubmatch(input)
