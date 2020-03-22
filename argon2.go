@@ -118,12 +118,9 @@ func (phc *Argon2PHC) Encode(w io.Writer) (int, error) {
 			return res, writeErr
 		}
 	}
-	write, writeErr = fmt.Fprintf(w, "$%s$%s", phc.Salt, phc.Hash)
+	write, writeErr = writeSaltAndHash(w, phc.Salt, phc.Hash)
 	res += write
-	if writeErr != nil {
-		return res, writeErr
-	}
-	return res, nil
+	return res, writeErr
 }
 
 // EncodeString generates the encoding in the form
