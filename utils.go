@@ -22,6 +22,8 @@ import (
 	"strconv"
 )
 
+// re-used regex patterns
+
 const base64Char = `[A-Za-z0-9+/]`
 const base64String = base64Char + `+`
 
@@ -35,10 +37,12 @@ const phcPositiveDecimalRegex = `^` + phcPositiveDecimalRegexString + `$`
 
 var phcPositiveDecimalRx = regexp.MustCompile(phcPositiveDecimalRegex)
 
-const maxInt = int(^uint(0) >> 1)
+// some constants used for validating certain parameter values
 
+const maxInt = int(^uint(0) >> 1)
 const argon2MaxSize uint64 = 4294967295
 
+// ParsePHCDecimal parses a decimal as defined in the phc specification from a string.
 func ParsePHCDecimal(input string) (int, error) {
 	match := phcDecimalRx.FindStringSubmatch(input)
 	if len(match) == 0 {
@@ -47,6 +51,7 @@ func ParsePHCDecimal(input string) (int, error) {
 	return strconv.Atoi(match[1])
 }
 
+// ParsePHCPositiveDecimal parses a positive decimal as defined in the phc specification from a string.
 func ParsePHCPositiveDecimal(input string) (int, error) {
 	match := phcPositiveDecimalRx.FindStringSubmatch(input)
 	if len(match) == 0 {
@@ -55,6 +60,9 @@ func ParsePHCPositiveDecimal(input string) (int, error) {
 	return strconv.Atoi(match[1])
 }
 
+// writeSaltAndHash writes the salt and hash to w if they're not empty.
+// This function writes $ signs accordingly.
+// It returns the number of bytes written and any error that occurred.
 func writeSaltAndHash(w io.Writer, salt, hash string) (int, error) {
 	if salt == "" {
 		// no need to write salt, but hash is not allowed to be not empty
