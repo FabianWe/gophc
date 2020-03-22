@@ -144,7 +144,6 @@ func (phc *Argon2PHC) EncodeString() (string, error) {
 //
 // Also note that both Hash and Salt are optional according to the phc definition.
 func DecodeArgon2PHC(input string) (*Argon2PHC, error) {
-	fmt.Println(argon2PHCRegexString)
 	match := argon2PHCRx.FindStringSubmatch(input)
 	if len(match) == 0 {
 		return nil, errors.New("input does not match argon2 format")
