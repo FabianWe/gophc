@@ -105,6 +105,16 @@ func TestScryptDecode(t *testing.T) {
 				Hash:        "ghijkl",
 			},
 		},
+		{
+			"$scrypt$ln=20,r=16,p=2",
+			&gophc.ScryptPHC{
+				Cost:        20,
+				BlockSize:   16,
+				Parallelism: 2,
+				Salt:        "",
+				Hash:        "",
+			},
+		},
 	}
 	for _, tc := range tests {
 		got, err := gophc.DecodeScryptPHC(tc.in)
