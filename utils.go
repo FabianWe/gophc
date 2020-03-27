@@ -35,6 +35,20 @@ var phcDecimalRx = regexp.MustCompile(phcDecimalRegex)
 const phcPositiveDecimalRegexString = `(0|[1-9]\d*)`
 const phcPositiveDecimalRegex = `^` + phcPositiveDecimalRegexString + `$`
 
+func getPHCPositiveDecimalRegexString(max uint32) string {
+	if max < 1 {
+		panic("Internal error: Can't create regex for phc positive decimal: max must be at least 1")
+	}
+	return fmt.Sprintf(`(0|[1-9]\d{0,%d})`, max-1)
+}
+
+func getPHCBase64Regex(min, max uint32) string {
+	if min > max {
+		panic("Internal error: Can't create regex for phc base64: min > max")
+	}
+	return base64Char + fmt.Sprintf(`{%d,%d}`, min, max)
+}
+
 var phcPositiveDecimalRx = regexp.MustCompile(phcPositiveDecimalRegex)
 
 // some constants used for validating certain parameter values
@@ -84,4 +98,11 @@ func writeSaltAndHash(w io.Writer, salt, hash string) (int, error) {
 		res += write
 	}
 	return res, err
+}
+
+func validateBase64ModLen(s string) error {
+	if len(s)%4 == 1 {
+		return errors.New("base64 validatione error: Got a string of length mod 4 == 1")
+	}
+	return nil
 }

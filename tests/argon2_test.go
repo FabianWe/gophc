@@ -134,29 +134,6 @@ func TestArgon2Decode(t *testing.T) {
 	}
 }
 
-var katGood = []string{
-	"$argon2i$m=120,t=5000,p=2",
-	"$argon2i$m=120,t=4294967295,p=2",
-	"$argon2i$m=2040,t=5000,p=255",
-	"$argon2i$m=120,t=5000,p=2,keyid=Hj5+dsK0",
-	"$argon2i$m=120,t=5000,p=2,keyid=Hj5+dsK0ZQ",
-	"$argon2i$m=120,t=5000,p=2,keyid=Hj5+dsK0ZQA",
-	"$argon2i$m=120,t=5000,p=2,data=sRlHhRmKUGzdOmXn01XmXygd5Kc",
-	"$argon2i$m=120,t=5000,p=2,keyid=Hj5+dsK0,data=sRlHhRmKUGzdOmXn01XmXygd5Kc",
-	"$argon2i$m=120,t=5000,p=2$/LtFjH5rVL8",
-	"$argon2i$m=120,t=5000,p=2$4fXXG0spB92WPB1NitT8/OH0VKI",
-	"$argon2i$m=120,t=5000,p=2$BwUgJHHQaynE+a4nZrYRzOllGSjjxuxNXxyNRUtI6Dlw/zlbt6PzOL8Onfqs6TcG",
-	"$argon2i$m=120,t=5000,p=2,keyid=Hj5+dsK0$4fXXG0spB92WPB1NitT8/OH0VKI",
-	"$argon2i$m=120,t=5000,p=2,data=sRlHhRmKUGzdOmXn01XmXygd5Kc$4fXXG0spB92WPB1NitT8/OH0VKI",
-	"$argon2i$m=120,t=5000,p=2,keyid=Hj5+dsK0,data=sRlHhRmKUGzdOmXn01XmXygd5Kc$4fXXG0spB92WPB1NitT8/OH0VKI",
-	"$argon2i$m=120,t=5000,p=2$4fXXG0spB92WPB1NitT8/OH0VKI$iPBVuORECm5biUsjq33hn9/7BKqy9aPWKhFfK2haEsM",
-	"$argon2i$m=120,t=5000,p=2,keyid=Hj5+dsK0$4fXXG0spB92WPB1NitT8/OH0VKI$iPBVuORECm5biUsjq33hn9/7BKqy9aPWKhFfK2haEsM",
-	"$argon2i$m=120,t=5000,p=2,data=sRlHhRmKUGzdOmXn01XmXygd5Kc$4fXXG0spB92WPB1NitT8/OH0VKI$iPBVuORECm5biUsjq33hn9/7BKqy9aPWKhFfK2haEsM",
-	"$argon2i$m=120,t=5000,p=2,keyid=Hj5+dsK0,data=sRlHhRmKUGzdOmXn01XmXygd5Kc$4fXXG0spB92WPB1NitT8/OH0VKI$iPBVuORECm5biUsjq33hn9/7BKqy9aPWKhFfK2haEsM",
-	"$argon2i$m=120,t=5000,p=2,keyid=Hj5+dsK0,data=sRlHhRmKUGzdOmXn01XmXygd5Kc$iHSDPHzUhPzK7rCcJgOFfg$EkCWX6pSTqWruiR0",
-	"$argon2i$m=120,t=5000,p=2,keyid=Hj5+dsK0,data=sRlHhRmKUGzdOmXn01XmXygd5Kc$iHSDPHzUhPzK7rCcJgOFfg$J4moa2MM0/6uf3HbY2Tf5Fux8JIBTwIhmhxGRbsY14qhTltQt+Vw3b7tcJNEbk8ium8AQfZeD4tabCnNqfkD1g",
-}
-
 func decodeEncodeTest(tc string) (string, error) {
 	decoded, decodeErr := gophc.DecodeArgon2PHC(tc)
 	if decodeErr != nil {
@@ -166,6 +143,9 @@ func decodeEncodeTest(tc string) (string, error) {
 	encoded, encodeErr := decoded.EncodeString()
 	if encodeErr != nil {
 		return "", encodeErr
+	}
+	if validateErr := decoded.ValidateParameters(); validateErr != nil {
+		return encoded, validateErr
 	}
 	return encoded, nil
 }
@@ -179,6 +159,16 @@ func TestArgon2KatGood(t *testing.T) {
 		}
 		if got != tc {
 			t.Errorf("Validation error: Decode/encode difference for \"%s\", got \"%s\"",
+				tc, got)
+		}
+	}
+}
+
+func TestArgon2KatBad(t *testing.T) {
+	for _, tc := range katBad {
+		got, err := decodeEncodeTest(tc)
+		if err == nil {
+			t.Errorf("Expected error for \"%s\", but got \"%s\" as a result",
 				tc, got)
 		}
 	}

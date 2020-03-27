@@ -23,17 +23,21 @@ import (
 	"strings"
 )
 
-// argon2PHCRegexString is the regex used to decode an argon2 phc string.
-const argon2PHCRegexString = `^\$(argon2id|argon2i|argon2d)` + // variant
-	`\$m=` + phcPositiveDecimalRegexString + `,t=` + phcPositiveDecimalRegexString +
-	`,p=` + phcPositiveDecimalRegexString + // required parameters
-	`(?:,keyid=(` + base64String + `))?` + // optional keyid
-	`(?:,data=(` + base64String + `))?` +
-	`(?:\$(` + base64String + `))?` + // salt
-	`(?:\$(` + base64String + `))?$` // hash
+var argon2PHCRegexString string
+var argon2PHCRx *regexp.Regexp
 
-// argon2PHCRx 	is the compiled form of argon2PHCRegexString.
-var argon2PHCRx = regexp.MustCompile(argon2PHCRegexString)
+func init() {
+	// argon2PHCRegexString is the regex used to decode an argon2 phc string
+	argon2PHCRegexString = `^\$(argon2id|argon2i|argon2d)` + // variant
+		`\$m=` + getPHCPositiveDecimalRegexString(10) + `,t=` + getPHCPositiveDecimalRegexString(10) +
+		`,p=` + getPHCPositiveDecimalRegexString(3) + // required parameters
+		`(?:,keyid=(` + getPHCBase64Regex(0, 11) + `))?` + // optional keyid
+		`(?:,data=(` + getPHCBase64Regex(0, 43) + `))?` +
+		`(?:\$(` + getPHCBase64Regex(11, 64) + `))?` + // salt
+		`(?:\$(` + getPHCBase64Regex(16, 86) + `))?$` // hash
+	// argon2PHCRx 	is the compiled form of argon2PHCRegexString.
+	argon2PHCRx = regexp.MustCompile(argon2PHCRegexString)
+}
 
 // Argon2PHC contains all information to encode the data to a phc string.
 //
@@ -68,8 +72,7 @@ func (phc *Argon2PHC) Equals(other *Argon2PHC) bool {
 		phc.Hash == other.Hash
 }
 
-// ValidateParameters verifies that the parameters used are valid for scrypt.
-// Salt and Hash are not validated in any way!
+// ValidateParameters verifies that the parameters used are valid for argon2.
 func (phc *Argon2PHC) ValidateParameters() error {
 	if phc.Memory < 1 || uint64(phc.Memory) > argon2MaxSize {
 		return fmt.Errorf("argon2 validation error: memory must be in range 1 <= memory <= %d",
@@ -81,6 +84,23 @@ func (phc *Argon2PHC) ValidateParameters() error {
 	}
 	if phc.Parallelism < 1 || uint64(phc.Parallelism) > 255 {
 		return fmt.Errorf("argon2 validation error: parallelism must be in range 1 <= 255 <= 255")
+	}
+	// The memory cost parameter, expressed in kilobytes, must be at least 8 times the value of p
+	if phc.Memory < 8*phc.Parallelism {
+		return fmt.Errorf("argon2 validation error: memory must be at least 8 * parallelism, got m=%d, p=%d",
+			phc.Memory, phc.Parallelism)
+	}
+	if base64Err := validateBase64ModLen(phc.KeyId); base64Err != nil {
+		return base64Err
+	}
+	if base64Err := validateBase64ModLen(phc.Data); base64Err != nil {
+		return base64Err
+	}
+	if base64Err := validateBase64ModLen(phc.Salt); base64Err != nil {
+		return base64Err
+	}
+	if base64Err := validateBase64ModLen(phc.Hash); base64Err != nil {
+		return base64Err
 	}
 	return nil
 }
