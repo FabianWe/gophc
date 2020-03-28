@@ -7,7 +7,7 @@ import (
 
 func process(s string) {
 	fmt.Println("Processing", s)
-	represents, decodeErr := gophc.Base64Decode([]byte(s))
+	represents, decodeErr := gophc.Base64DecodeNotStrict([]byte(s))
 	if decodeErr != nil {
 		panic(decodeErr)
 	}

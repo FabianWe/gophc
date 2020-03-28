@@ -24,22 +24,34 @@ import (
 // DefaultAlphabet is the alphabet used for phc.
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
-var bcEncoding = base64.NewEncoding(alphabet).WithPadding(base64.NoPadding).Strict()
+var nonStrictEncoding = base64.NewEncoding(alphabet).WithPadding(base64.NoPadding)
+var strictEncoding = nonStrictEncoding.Strict()
 
 // Base64Encode encodes the source to base64 using the alphabet.
 func Base64Encode(src []byte) []byte {
-	encodeLen := bcEncoding.EncodedLen(len(src))
+	encodeLen := strictEncoding.EncodedLen(len(src))
 	dst := make([]byte, encodeLen)
-	bcEncoding.Encode(dst, src)
+	strictEncoding.Encode(dst, src)
 	return dst[:encodeLen]
 }
 
-// Base64Decode decodes the source using the alphabet.
-func Base64Decode(src []byte) ([]byte, error) {
-	dst := make([]byte, bcEncoding.DecodedLen(len(src)))
-	n, err := bcEncoding.Decode(dst, src)
+func base64DecodeFromEncoding(enc *base64.Encoding, src []byte) ([]byte, error) {
+	dst := make([]byte, enc.DecodedLen(len(src)))
+	n, err := enc.Decode(dst, src)
 	if err != nil {
 		return nil, err
 	}
 	return dst[:n], nil
+}
+
+// Base64Decode decodes the source using the alphabet.
+func Base64Decode(src []byte) ([]byte, error) {
+	return base64DecodeFromEncoding(strictEncoding, src)
+}
+
+// Base64DecodeNotStrict decodes the source using the alphabet.
+//
+// In contrast to Base64Decode this method also allows non-zero trailing padding bits.
+func Base64DecodeNotStrict(src []byte) ([]byte, error) {
+	return base64DecodeFromEncoding(nonStrictEncoding, src)
 }

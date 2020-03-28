@@ -23,13 +23,28 @@ import (
 	"strings"
 )
 
+const defaultVersion uint64 = 0x10 // 1.0 (16)
+
+var Argon2Versions = []uint64{
+	0x10, // 1.0 (16)
+	0x13, // 1.3 (19)
+}
+
+var Argon2Variants = []string{
+	"argon2id",
+	"argon2i",
+	"argon2d",
+}
+
 var argon2PHCRegexString string
 var argon2PHCRx *regexp.Regexp
 
 func init() {
 	// argon2PHCRegexString is the regex used to decode an argon2 phc string
-	argon2PHCRegexString = `^\$(argon2id|argon2i|argon2d)` + // variant
-		`\$m=` + getPHCPositiveDecimalRegexString(10) + `,t=` + getPHCPositiveDecimalRegexString(10) +
+	argon2PHCRegexString = `^\$(` + strings.Join(Argon2Variants, "|") + `)\$` + // variant
+		// version, this parameter is not required
+		`(?:v=` + getPHCPositiveDecimalRegexString(10) + `,)?` +
+		`m=` + getPHCPositiveDecimalRegexString(10) + `,t=` + getPHCPositiveDecimalRegexString(10) +
 		`,p=` + getPHCPositiveDecimalRegexString(3) + // required parameters
 		`(?:,keyid=(` + getPHCBase64Regex(0, 11) + `))?` + // optional keyid
 		`(?:,data=(` + getPHCBase64Regex(0, 43) + `))?` +
@@ -51,6 +66,7 @@ func init() {
 // Note that according to the specification they're both optional.
 type Argon2PHC struct {
 	Variant     string
+	Version     uint64
 	Memory      int
 	Iterations  int
 	Parallelism int
@@ -63,6 +79,7 @@ type Argon2PHC struct {
 // Equals tests if two phc instances describe the exact same configuration.
 func (phc *Argon2PHC) Equals(other *Argon2PHC) bool {
 	return phc.Variant == other.Variant &&
+		phc.Version == other.Version &&
 		phc.Memory == other.Memory &&
 		phc.Iterations == other.Iterations &&
 		phc.Parallelism == other.Parallelism &&
@@ -74,6 +91,37 @@ func (phc *Argon2PHC) Equals(other *Argon2PHC) bool {
 
 // ValidateParameters verifies that the parameters used are valid for argon2.
 func (phc *Argon2PHC) ValidateParameters() error {
+	// look for valid variant
+	variantIndex := -1
+	for i, candidate := range Argon2Variants {
+		if phc.Variant == candidate {
+			variantIndex = i
+			break
+		}
+	}
+	if variantIndex < 0 {
+		return fmt.Errorf("argon2 validation error: variant must be in [%s]",
+			strings.Join(Argon2Variants, ", "))
+	}
+
+	// look for version
+	versionIndex := -1
+	for i, candidate := range Argon2Versions {
+		if phc.Version == candidate {
+			versionIndex = i
+			break
+		}
+	}
+	if versionIndex < 0 {
+		versionStrings := make([]string, len(Argon2Versions))
+		for i, versionCandidate := range Argon2Versions {
+			formatted := fmt.Sprintf("%d (0x%s)", versionCandidate, strconv.FormatUint(versionCandidate, 16))
+			versionStrings[i] = formatted
+		}
+		return fmt.Errorf("argon2 validation error: invalid version %d, must be one of [%s]",
+			phc.Version, strings.Join(versionStrings, ", "))
+	}
+
 	if phc.Memory < 1 || uint64(phc.Memory) > argon2MaxSize {
 		return fmt.Errorf("argon2 validation error: memory must be in range 1 <= memory <= %d",
 			argon2MaxSize)
@@ -118,8 +166,8 @@ func (phc *Argon2PHC) ValidateParameters() error {
 // encoding / decoding hashes takes place here, see base64 functionality for that).
 func (phc *Argon2PHC) Encode(w io.Writer) (int, error) {
 	res := 0
-	write, writeErr := fmt.Fprintf(w, "$%s$m=%d,t=%d,p=%d",
-		phc.Variant, phc.Memory, phc.Iterations, phc.Parallelism)
+	write, writeErr := fmt.Fprintf(w, "$%s$v=%d,m=%d,t=%d,p=%d",
+		phc.Variant, phc.Version, phc.Memory, phc.Iterations, phc.Parallelism)
 	res += write
 	if writeErr != nil {
 		return res, writeErr
@@ -169,22 +217,35 @@ func DecodeArgon2PHC(input string) (*Argon2PHC, error) {
 		return nil, errors.New("input does not match argon2 format")
 	}
 	variant := match[1]
-	memory, memoryErr := strconv.Atoi(match[2])
+	versionStr := match[2]
+	var version uint64
+	if versionStr == "" {
+		// old argon2 without version, use default version
+		version = defaultVersion
+	} else {
+		var versionErr error
+		version, versionErr = strconv.ParseUint(versionStr, 10, 64)
+		if versionErr != nil {
+			return nil, versionErr
+		}
+	}
+	memory, memoryErr := strconv.Atoi(match[3])
 	if memoryErr != nil {
 		return nil, memoryErr
 	}
-	iterations, iterationsErr := strconv.Atoi(match[3])
+	iterations, iterationsErr := strconv.Atoi(match[4])
 	if iterationsErr != nil {
 		return nil, iterationsErr
 	}
-	parallelism, parallelismErr := strconv.Atoi(match[4])
+	parallelism, parallelismErr := strconv.Atoi(match[5])
 	if parallelismErr != nil {
 		return nil, parallelismErr
 	}
-	keyID, data := match[5], match[6]
-	salt, hash := match[7], match[8]
+	keyID, data := match[6], match[7]
+	salt, hash := match[8], match[9]
 	res := Argon2PHC{
 		Variant:     variant,
+		Version:     version,
 		Memory:      memory,
 		Iterations:  iterations,
 		Parallelism: parallelism,
