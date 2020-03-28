@@ -6,6 +6,9 @@ import (
 	"testing"
 )
 
+// Note for anyone reading the tests: Never use bytes.Equal for comparing hashes of passwords,
+// use crypto/subtle/ (constant time compares)
+
 func TestBase64Encode(t *testing.T) {
 	// tests: complete groups (len % 3 == 0)
 	// and also mod 3 == 1 and 2

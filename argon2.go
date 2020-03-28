@@ -46,8 +46,8 @@ func init() {
 		`(?:v=` + getPHCPositiveDecimalRegexString(10) + `,)?` +
 		`m=` + getPHCPositiveDecimalRegexString(10) + `,t=` + getPHCPositiveDecimalRegexString(10) +
 		`,p=` + getPHCPositiveDecimalRegexString(3) + // required parameters
-		`(?:\$(` + getPHCBase64Regex(11, 64) + `))?` + // salt
-		`(?:\$(` + getPHCBase64Regex(16, 86) + `))?$` // hash
+		`(?:\$(` + getPHCBase64Regex(11, -1) + `))?` + // salt
+		`(?:\$(` + getPHCBase64Regex(16, -1) + `))?$` // hash
 	// argon2PHCRx 	is the compiled form of argon2PHCRegexString.
 	argon2PHCRx = regexp.MustCompile(argon2PHCRegexString)
 }

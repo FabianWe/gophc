@@ -42,9 +42,12 @@ func getPHCPositiveDecimalRegexString(max uint32) string {
 	return fmt.Sprintf(`(0|[1-9]\d{0,%d})`, max-1)
 }
 
-func getPHCBase64Regex(min, max uint32) string {
-	if min > max {
-		panic("Internal error: Can't create regex for phc base64: min > max")
+func getPHCBase64Regex(min, max int32) string {
+	if min < 0 {
+		panic("Internal error: Can't create regex for phc base64: min < 0")
+	}
+	if max < 0 {
+		return base64Char + fmt.Sprintf(`{%d,}`, min)
 	}
 	return base64Char + fmt.Sprintf(`{%d,%d}`, min, max)
 }
