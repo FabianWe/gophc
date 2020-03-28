@@ -46,8 +46,6 @@ func init() {
 		`(?:v=` + getPHCPositiveDecimalRegexString(10) + `,)?` +
 		`m=` + getPHCPositiveDecimalRegexString(10) + `,t=` + getPHCPositiveDecimalRegexString(10) +
 		`,p=` + getPHCPositiveDecimalRegexString(3) + // required parameters
-		`(?:,keyid=(` + getPHCBase64Regex(0, 11) + `))?` + // optional keyid
-		`(?:,data=(` + getPHCBase64Regex(0, 43) + `))?` +
 		`(?:\$(` + getPHCBase64Regex(11, 64) + `))?` + // salt
 		`(?:\$(` + getPHCBase64Regex(16, 86) + `))?$` // hash
 	// argon2PHCRx 	is the compiled form of argon2PHCRegexString.
@@ -70,8 +68,6 @@ type Argon2PHC struct {
 	Memory      int
 	Iterations  int
 	Parallelism int
-	KeyId       string
-	Data        string
 	Salt        string
 	Hash        string
 }
@@ -83,8 +79,6 @@ func (phc *Argon2PHC) Equals(other *Argon2PHC) bool {
 		phc.Memory == other.Memory &&
 		phc.Iterations == other.Iterations &&
 		phc.Parallelism == other.Parallelism &&
-		phc.KeyId == other.KeyId &&
-		phc.Data == other.Data &&
 		phc.Salt == other.Salt &&
 		phc.Hash == other.Hash
 }
@@ -97,8 +91,6 @@ func (phc *Argon2PHC) WithSaltAndHash(salt, hash []byte) *Argon2PHC {
 		Memory:      phc.Memory,
 		Iterations:  phc.Iterations,
 		Parallelism: phc.Parallelism,
-		KeyId:       phc.KeyId,
-		Data:        phc.Data,
 		Salt:        encodedSalt,
 		Hash:        encodedHash,
 	}
@@ -153,12 +145,6 @@ func (phc *Argon2PHC) ValidateParameters() error {
 		return fmt.Errorf("argon2 validation error: memory must be at least 8 * parallelism, got m=%d, p=%d",
 			phc.Memory, phc.Parallelism)
 	}
-	if base64Err := validateBase64Len(phc.KeyId); base64Err != nil {
-		return base64Err
-	}
-	if base64Err := validateBase64Len(phc.Data); base64Err != nil {
-		return base64Err
-	}
 	if base64Err := validateBase64Len(phc.Salt); base64Err != nil {
 		return base64Err
 	}
@@ -186,20 +172,6 @@ func (phc *Argon2PHC) Encode(w io.Writer) (int, error) {
 	res += write
 	if writeErr != nil {
 		return res, writeErr
-	}
-	if phc.KeyId != "" {
-		write, writeErr = fmt.Fprintf(w, ",keyid=%s", phc.KeyId)
-		res += write
-		if writeErr != nil {
-			return res, writeErr
-		}
-	}
-	if phc.Data != "" {
-		write, writeErr = fmt.Fprintf(w, ",data=%s", phc.Data)
-		res += write
-		if writeErr != nil {
-			return res, writeErr
-		}
 	}
 	write, writeErr = writeSaltAndHash(w, phc.Salt, phc.Hash)
 	res += write
@@ -256,16 +228,13 @@ func DecodeArgon2PHC(input string) (*Argon2PHC, error) {
 	if parallelismErr != nil {
 		return nil, parallelismErr
 	}
-	keyID, data := match[6], match[7]
-	salt, hash := match[8], match[9]
+	salt, hash := match[6], match[7]
 	res := Argon2PHC{
 		Variant:     variant,
 		Version:     version,
 		Memory:      memory,
 		Iterations:  iterations,
 		Parallelism: parallelism,
-		KeyId:       keyID,
-		Data:        data,
 		Salt:        salt,
 		Hash:        hash,
 	}
