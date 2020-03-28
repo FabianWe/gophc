@@ -134,18 +134,69 @@ func TestArgon2Decode(t *testing.T) {
 	}
 }
 
+func base64Argon2TestSingle(s string) (string, error) {
+	if s == "" {
+		return s, nil
+	}
+	decoded, decodeErr := gophc.Base64Decode([]byte(s))
+	if decodeErr != nil {
+		return "", decodeErr
+	}
+	// encode back
+	return string(gophc.Base64Encode(decoded)), nil
+}
+
+// decodes the base64 parts, encodes the returned bytes and returns new instance
+func base64Argon2Test(instance *gophc.Argon2PHC) (*gophc.Argon2PHC, error) {
+	keyID, keyIDErr := base64Argon2TestSingle(instance.KeyId)
+	if keyIDErr != nil {
+		return nil, keyIDErr
+	}
+	data, dataErr := base64Argon2TestSingle(instance.Data)
+	if dataErr != nil {
+		return nil, dataErr
+	}
+	salt, saltErr := base64Argon2TestSingle(instance.Salt)
+	if saltErr != nil {
+		return nil, saltErr
+	}
+	hash, hashErr := base64Argon2TestSingle(instance.Hash)
+	if hashErr != nil {
+		return nil, hashErr
+	}
+
+	newInstance := gophc.Argon2PHC{
+		Variant:     instance.Variant,
+		Memory:      instance.Memory,
+		Iterations:  instance.Iterations,
+		Parallelism: instance.Parallelism,
+		KeyId:       keyID,
+		Data:        data,
+		Salt:        salt,
+		Hash:        hash,
+	}
+	return &newInstance, nil
+}
+
 func decodeEncodeTest(tc string) (string, error) {
 	decoded, decodeErr := gophc.DecodeArgon2PHC(tc)
 	if decodeErr != nil {
 		return "", decodeErr
 	}
-	// convert back to string
-	encoded, encodeErr := decoded.EncodeString()
+	if validateErr := decoded.ValidateParameters(); validateErr != nil {
+		return "", validateErr
+	}
+	// convert new phc back to string
+	withBase64, base64Err := base64Argon2Test(decoded)
+	if base64Err != nil {
+		return "", base64Err
+	}
+	if validateErr := withBase64.ValidateParameters(); validateErr != nil {
+		return "", validateErr
+	}
+	encoded, encodeErr := withBase64.EncodeString()
 	if encodeErr != nil {
 		return "", encodeErr
-	}
-	if validateErr := decoded.ValidateParameters(); validateErr != nil {
-		return encoded, validateErr
 	}
 	return encoded, nil
 }

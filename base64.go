@@ -21,17 +21,17 @@ import (
 // base64 provides the internal base64 encoding / decoding.
 // The base64 encoding / decoding is inspired by https://github.com/golang/crypto/blob/master/bcrypt/base64.go
 
-// DefaultAlphabet is the alphabet used by most algorithms.
+// DefaultAlphabet is the alphabet used for phc.
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
-var bcEncoding = base64.NewEncoding(alphabet).WithPadding(base64.NoPadding)
+var bcEncoding = base64.NewEncoding(alphabet).WithPadding(base64.NoPadding).Strict()
 
 // Base64Encode encodes the source to base64 using the alphabet.
 func Base64Encode(src []byte) []byte {
-	n := bcEncoding.EncodedLen(len(src))
-	dst := make([]byte, n)
+	encodeLen := bcEncoding.EncodedLen(len(src))
+	dst := make([]byte, encodeLen)
 	bcEncoding.Encode(dst, src)
-	return dst[:n]
+	return dst[:encodeLen]
 }
 
 // Base64Decode decodes the source using the alphabet.

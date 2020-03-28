@@ -5,16 +5,24 @@ import (
 	"github.com/FabianWe/gophc"
 )
 
-func main() {
-	in := "Hj5+dsK0ZR"
-	asBytes := gophc.Base64Encode([]byte(in))
-	fmt.Println(len(asBytes))
-	fmt.Println(asBytes)
-	// decode
-	decoded, decodeErr := gophc.Base64Decode(asBytes)
+func process(s string) {
+	fmt.Println("Processing", s)
+	represents, decodeErr := gophc.Base64Decode([]byte(s))
 	if decodeErr != nil {
 		panic(decodeErr)
 	}
-	decodedString := string(decoded)
-	fmt.Println(decodedString)
+	fmt.Printf("In encodes: len=%d, array=%v\n", len(represents), represents)
+	encoded := gophc.Base64Encode(represents)
+	fmt.Println("Encoding back to (string):", string(encoded))
+}
+
+func main() {
+	// should be invalid
+	inValid := "Hj5+dsK0ZQA"
+	fmt.Println("================")
+	process(inValid)
+
+	//fmt.Println("==================")
+	//process("Hj5+dsK0ZR")
+	process("Hj5+dsK0ZQB")
 }

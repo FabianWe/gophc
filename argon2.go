@@ -90,16 +90,16 @@ func (phc *Argon2PHC) ValidateParameters() error {
 		return fmt.Errorf("argon2 validation error: memory must be at least 8 * parallelism, got m=%d, p=%d",
 			phc.Memory, phc.Parallelism)
 	}
-	if base64Err := validateBase64ModLen(phc.KeyId); base64Err != nil {
+	if base64Err := validateBase64Len(phc.KeyId); base64Err != nil {
 		return base64Err
 	}
-	if base64Err := validateBase64ModLen(phc.Data); base64Err != nil {
+	if base64Err := validateBase64Len(phc.Data); base64Err != nil {
 		return base64Err
 	}
-	if base64Err := validateBase64ModLen(phc.Salt); base64Err != nil {
+	if base64Err := validateBase64Len(phc.Salt); base64Err != nil {
 		return base64Err
 	}
-	if base64Err := validateBase64ModLen(phc.Hash); base64Err != nil {
+	if base64Err := validateBase64Len(phc.Hash); base64Err != nil {
 		return base64Err
 	}
 	return nil

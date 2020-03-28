@@ -100,7 +100,7 @@ func writeSaltAndHash(w io.Writer, salt, hash string) (int, error) {
 	return res, err
 }
 
-func validateBase64ModLen(s string) error {
+func validateBase64Len(s string) error {
 	if len(s)%4 == 1 {
 		return errors.New("base64 validatione error: Got a string of length mod 4 == 1")
 	}
