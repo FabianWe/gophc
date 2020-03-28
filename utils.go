@@ -106,3 +106,44 @@ func validateBase64Len(s string) error {
 	}
 	return nil
 }
+
+func EncodeSaltAndHash(salt, hash []byte) (encodedSalt, encodedHash string) {
+	if len(salt) != 0 {
+		encodedSalt = string(Base64Encode(salt))
+	}
+	if len(encodedHash) != 0 {
+		encodedHash = string(Base64Encode(hash))
+	}
+
+	return
+}
+
+func DecodeSaltAndHash(salt, hash string) (decodedSalt, decodedHash []byte, err error) {
+	if salt != "" {
+		decodedSalt, err = Base64Decode([]byte(salt))
+		if err != nil {
+			return
+		}
+	}
+
+	if hash != "" {
+		decodedHash, err = Base64Decode([]byte(hash))
+	}
+
+	return
+}
+
+func DecodeSaltAndHashNotStrict(salt, hash string) (decodedSalt, decodedHash []byte, err error) {
+	if salt != "" {
+		decodedSalt, err = Base64DecodeNotStrict([]byte(salt))
+		if err != nil {
+			return
+		}
+	}
+
+	if hash != "" {
+		decodedHash, err = Base64DecodeNotStrict([]byte(hash))
+	}
+
+	return
+}

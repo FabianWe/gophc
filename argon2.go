@@ -89,6 +89,21 @@ func (phc *Argon2PHC) Equals(other *Argon2PHC) bool {
 		phc.Hash == other.Hash
 }
 
+func (phc *Argon2PHC) WithSaltAndHash(salt, hash []byte) *Argon2PHC {
+	encodedSalt, encodedHash := EncodeSaltAndHash(salt, hash)
+	return &Argon2PHC{
+		Variant:     phc.Variant,
+		Version:     phc.Version,
+		Memory:      phc.Memory,
+		Iterations:  phc.Iterations,
+		Parallelism: phc.Parallelism,
+		KeyId:       phc.KeyId,
+		Data:        phc.Data,
+		Salt:        encodedSalt,
+		Hash:        encodedHash,
+	}
+}
+
 // ValidateParameters verifies that the parameters used are valid for argon2.
 func (phc *Argon2PHC) ValidateParameters() error {
 	// look for valid variant
