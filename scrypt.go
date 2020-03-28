@@ -56,6 +56,17 @@ func (phc *ScryptPHC) Equals(other *ScryptPHC) bool {
 		phc.Hash == other.Hash
 }
 
+func (phc *ScryptPHC) WithSaltAndHash(salt, hash []byte) *ScryptPHC {
+	encodedSalt, encodedHash := EncodeSaltAndHash(salt, hash)
+	return &ScryptPHC{
+		Cost:        phc.Cost,
+		BlockSize:   phc.BlockSize,
+		Parallelism: phc.Parallelism,
+		Salt:        encodedSalt,
+		Hash:        encodedHash,
+	}
+}
+
 // ValidateParameters verifies that the parameters used are valid for scrypt.
 // Salt and Hash are not validated in any way.
 func (phc *ScryptPHC) ValidateParameters() error {
