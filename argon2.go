@@ -23,9 +23,9 @@ import (
 	"strings"
 )
 
-const defaultVersion uint64 = 0x10 // 1.0 (16)
+const defaultVersion uint32 = 0x10 // 1.0 (16)
 
-var Argon2Versions = []uint64{
+var Argon2Versions = []uint32{
 	0x10, // 1.0 (16)
 	0x13, // 1.3 (19)
 }
@@ -64,10 +64,10 @@ func init() {
 // Note that according to the specification they're both optional.
 type Argon2PHC struct {
 	Variant     string
-	Version     uint64
-	Memory      int
-	Iterations  int
-	Parallelism int
+	Version     uint32
+	Memory      uint32
+	Iterations  uint32
+	Parallelism uint8
 	Salt        string
 	Hash        string
 }
@@ -122,26 +122,26 @@ func (phc *Argon2PHC) ValidateParameters() error {
 	if versionIndex < 0 {
 		versionStrings := make([]string, len(Argon2Versions))
 		for i, versionCandidate := range Argon2Versions {
-			formatted := fmt.Sprintf("%d (0x%s)", versionCandidate, strconv.FormatUint(versionCandidate, 16))
+			formatted := fmt.Sprintf("%d (0x%s)", versionCandidate, strconv.FormatUint(uint64(versionCandidate), 16))
 			versionStrings[i] = formatted
 		}
 		return fmt.Errorf("argon2 validation error: invalid version %d, must be one of [%s]",
 			phc.Version, strings.Join(versionStrings, ", "))
 	}
 
-	if phc.Memory < 1 || uint64(phc.Memory) > argon2MaxSize {
+	if phc.Memory < 1 {
 		return fmt.Errorf("argon2 validation error: memory must be in range 1 <= memory <= %d",
 			argon2MaxSize)
 	}
-	if phc.Iterations < 1 || uint64(phc.Iterations) > argon2MaxSize {
+	if phc.Iterations < 1 {
 		return fmt.Errorf("argon2 validation error: iterations must be in range 1 <= iterations <= %d",
 			argon2MaxSize)
 	}
-	if phc.Parallelism < 1 || uint64(phc.Parallelism) > 255 {
+	if phc.Parallelism < 1 {
 		return fmt.Errorf("argon2 validation error: parallelism must be in range 1 <= 255 <= 255")
 	}
 	// The memory cost parameter, expressed in kilobytes, must be at least 8 times the value of p
-	if phc.Memory < 8*phc.Parallelism {
+	if phc.Memory < 8*uint32(phc.Parallelism) {
 		return fmt.Errorf("argon2 validation error: memory must be at least 8 * parallelism, got m=%d, p=%d",
 			phc.Memory, phc.Parallelism)
 	}
@@ -205,26 +205,26 @@ func DecodeArgon2PHC(input string) (*Argon2PHC, error) {
 	}
 	variant := match[1]
 	versionStr := match[2]
-	var version uint64
+	var version uint32
 	if versionStr == "" {
 		// old argon2 without version, use default version
 		version = defaultVersion
 	} else {
-		var versionErr error
-		version, versionErr = strconv.ParseUint(versionStr, 10, 64)
+		parsedVersion, versionErr := strconv.ParseUint(versionStr, 10, 32)
 		if versionErr != nil {
 			return nil, versionErr
 		}
+		version = uint32(parsedVersion)
 	}
-	memory, memoryErr := strconv.Atoi(match[3])
+	memory, memoryErr := strconv.ParseUint(match[3], 10, 32)
 	if memoryErr != nil {
 		return nil, memoryErr
 	}
-	iterations, iterationsErr := strconv.Atoi(match[4])
+	iterations, iterationsErr := strconv.ParseUint(match[4], 10, 32)
 	if iterationsErr != nil {
 		return nil, iterationsErr
 	}
-	parallelism, parallelismErr := strconv.Atoi(match[5])
+	parallelism, parallelismErr := strconv.ParseUint(match[5], 10, 8)
 	if parallelismErr != nil {
 		return nil, parallelismErr
 	}
@@ -232,9 +232,9 @@ func DecodeArgon2PHC(input string) (*Argon2PHC, error) {
 	res := Argon2PHC{
 		Variant:     variant,
 		Version:     version,
-		Memory:      memory,
-		Iterations:  iterations,
-		Parallelism: parallelism,
+		Memory:      uint32(memory),
+		Iterations:  uint32(iterations),
+		Parallelism: uint8(parallelism),
 		Salt:        salt,
 		Hash:        hash,
 	}

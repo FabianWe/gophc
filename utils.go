@@ -54,7 +54,7 @@ var phcPositiveDecimalRx = regexp.MustCompile(phcPositiveDecimalRegex)
 // some constants used for validating certain parameter values
 
 const maxInt = int(^uint(0) >> 1)
-const argon2MaxSize uint64 = 4294967295
+const argon2MaxSize uint32 = 4294967295
 
 // ParsePHCDecimal parses a decimal as defined in the phc specification from a string.
 func ParsePHCDecimal(input string) (int, error) {
