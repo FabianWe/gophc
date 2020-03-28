@@ -18,7 +18,7 @@ func process(s string) {
 
 func main() {
 	// should be invalid
-	inValid := "Hj5+dsK0ZQA"
+	inValid := "Hj5+dsK0ZR"
 	fmt.Println("================")
 	process(inValid)
 
