@@ -59,7 +59,6 @@ func init() {
 // All other arguments (Memory, Iterations, Parallelism, KeyId, Data) are the configuration parameters
 // for argon2, see argon2 phc specification
 // https://github.com/P-H-C/phc-string-format/blob/master/phc-sf-spec.md#argon2-encoding.
-// KeyId and Data re optional parameters.
 // Salt and Has are the base64 encoded strings of the salt and hash, not the raw bytes!
 // Note that according to the specification they're both optional.
 type Argon2PHC struct {
@@ -83,6 +82,12 @@ func (phc *Argon2PHC) Equals(other *Argon2PHC) bool {
 		phc.Hash == other.Hash
 }
 
+// WithSaltAndHash returns a copy of a phc with salt and hash set.
+//
+// This method takes the raw salt and hash bytes (not the base64 encoded string).
+// Salt and hash will be encoded to base64 with EncodeSaltAndHash.
+//
+// This way you can easily encode multiple instances with the same configuration.
 func (phc *Argon2PHC) WithSaltAndHash(salt, hash []byte) *Argon2PHC {
 	encodedSalt, encodedHash := EncodeSaltAndHash(salt, hash)
 	return &Argon2PHC{
@@ -97,6 +102,15 @@ func (phc *Argon2PHC) WithSaltAndHash(salt, hash []byte) *Argon2PHC {
 }
 
 // ValidateParameters verifies that the parameters used are valid for argon2.
+//
+// This function will however not test the salt and hash directly, i.e. it will not try to decode the salt
+// and hash.
+// Some validation only happens when this happens.
+// Use DecodeSaltAndHash or DecodeSaltAndHashNotStrict for this.
+//
+// This function test if the variant is valid, if the version is valid and if the other parameters
+// are "correct", i.e. are set according to the argon2 requirements.
+// Note that there is no max length set for either hash or string!
 func (phc *Argon2PHC) ValidateParameters() error {
 	// look for valid variant
 	variantIndex := -1

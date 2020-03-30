@@ -110,6 +110,7 @@ func validateBase64Len(s string) error {
 	return nil
 }
 
+// EncodeSaltAndHash takes the raw salt and hash (not base64 encoded) and returns the encoded base64 string for both.
 func EncodeSaltAndHash(salt, hash []byte) (encodedSalt, encodedHash string) {
 	if len(salt) != 0 {
 		encodedSalt = string(Base64Encode(salt))
@@ -121,6 +122,14 @@ func EncodeSaltAndHash(salt, hash []byte) (encodedSalt, encodedHash string) {
 	return
 }
 
+// DecodeSaltAndHash takes base64 encoded salt and hash and decodes it.
+//
+// Note that this method uses the strict encoding, that is it assume that the base64 is in some way
+// "minimal".
+// The specifications says that consumers may accept such a decoding..
+// Minimal means that there are no non-zero trailing padding bits in the encoding.
+// EncodeSaltAndHash produces only such encodings.
+// There is also DecodeSaltAndHashNotStrict which accepts non-zero trailing padding bits.
 func DecodeSaltAndHash(salt, hash string) (decodedSalt, decodedHash []byte, err error) {
 	if salt != "" {
 		decodedSalt, err = Base64Decode([]byte(salt))
@@ -136,6 +145,11 @@ func DecodeSaltAndHash(salt, hash string) (decodedSalt, decodedHash []byte, err 
 	return
 }
 
+// DecodeSaltAndHashNotStrict takes base64 encoded salt and hash and decodes it.
+//
+// Note that this method does not require a strict encoding, that is it doesn't assume that the base64 is in some way
+// "minimal".
+// The difference to DecodeSaltAndHash is that this method also accepts non-zero trailing padding bits.
 func DecodeSaltAndHashNotStrict(salt, hash string) (decodedSalt, decodedHash []byte, err error) {
 	if salt != "" {
 		decodedSalt, err = Base64DecodeNotStrict([]byte(salt))

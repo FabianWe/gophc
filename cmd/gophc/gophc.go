@@ -3,26 +3,33 @@ package main
 import (
 	"fmt"
 	"github.com/FabianWe/gophc"
+	"os"
+	"strings"
 )
 
-func process(s string) {
-	fmt.Println("Processing", s)
-	represents, decodeErr := gophc.Base64DecodeNotStrict([]byte(s))
-	if decodeErr != nil {
-		panic(decodeErr)
-	}
-	fmt.Printf("In encodes: len=%d, array=%v\n", len(represents), represents)
-	encoded := gophc.Base64Encode(represents)
-	fmt.Println("Encoding back to (string):", string(encoded))
+func printUsage() {
+	fmt.Fprintf(os.Stderr, "usage: %s <hsah>\n", os.Args[0])
+	os.Exit(1)
 }
 
 func main() {
-	// should be invalid
-	inValid := "Hj5+dsK0ZR"
-	fmt.Println("================")
-	process(inValid)
+	if len(os.Args) == 1 {
+		printUsage()
+	}
+	phcStr := os.Args[1]
+	switch {
+	case strings.HasSuffix(phcStr, "$scrypt"):
+		scryptPhc, err := gophc.DecodeScryptPHC(phcStr)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Can't decode input \"%s\", got error %v\n", phcStr, err)
+			os.Exit(1)
+		}
+		fmt.Printf("Decoded the following scrypt conf: %#v\n", scryptPhc)
 
-	//fmt.Println("==================")
-	//process("Hj5+dsK0ZR")
-	process("Hj5+dsK0ZQB")
+	case strings.HasSuffix(phcStr, "$argon2"):
+	default:
+		fmt.Fprintf(os.Stderr, "error: hash must be either a scrypt or argon2 phc encoded string, got \"%s\"\n",
+			phcStr)
+		printUsage()
+	}
 }

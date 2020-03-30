@@ -56,6 +56,12 @@ func (phc *ScryptPHC) Equals(other *ScryptPHC) bool {
 		phc.Hash == other.Hash
 }
 
+// WithSaltAndHash returns a copy of a phc with salt and hash set.
+//
+// This method takes the raw salt and hash bytes (not the base64 encoded string).
+// Salt and hash will be encoded to base64 with EncodeSaltAndHash.
+//
+// This way you can easily encode multiple instances with the same configuration.
 func (phc *ScryptPHC) WithSaltAndHash(salt, hash []byte) *ScryptPHC {
 	encodedSalt, encodedHash := EncodeSaltAndHash(salt, hash)
 	return &ScryptPHC{
@@ -68,7 +74,13 @@ func (phc *ScryptPHC) WithSaltAndHash(salt, hash []byte) *ScryptPHC {
 }
 
 // ValidateParameters verifies that the parameters used are valid for scrypt.
-// Salt and Hash are not validated in any way.
+//
+// This function will however not test the salt and hash directly, i.e. it will not try to decode the salt
+// and hash.
+// Some validation only happens when this happens.
+// Use DecodeSaltAndHash or DecodeSaltAndHashNotStrict for this.
+// Only some basic validation takes place, i.e. that BlockSize and Parallelism are in the valid range
+// for scrypt.
 func (phc *ScryptPHC) ValidateParameters() error {
 	if phc.BlockSize < 1 || phc.BlockSize > math.MaxUint32 {
 		return fmt.Errorf("scrypt validation error: blocksize must be in range 1 <= blocksize <= %d, got %d",
