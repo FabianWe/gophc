@@ -18,6 +18,14 @@ import (
 	"encoding/base64"
 )
 
+type Base64Encoder interface {
+	Base64Encode(src []byte) []byte
+}
+
+type Base64Decoder interface {
+	Base64Decode(src []byte) ([]byte, error)
+}
+
 // base64 provides the internal base64 encoding / decoding.
 // The base64 encoding / decoding is inspired by https://github.com/golang/crypto/blob/master/bcrypt/base64.go
 
@@ -55,3 +63,24 @@ func Base64Decode(src []byte) ([]byte, error) {
 func Base64DecodeNotStrict(src []byte) ([]byte, error) {
 	return base64DecodeFromEncoding(nonStrictEncoding, src)
 }
+
+type DefaultBase64Handler struct {
+	Strict bool
+}
+
+func NewDefaultBase64Handler(strict bool) DefaultBase64Handler {
+	return DefaultBase64Handler{Strict: strict}
+}
+
+func (h DefaultBase64Handler) Base64Encode(src []byte) []byte {
+	return Base64Encode(src)
+}
+
+func (h DefaultBase64Handler) Base64Decode(src []byte) ([]byte, error) {
+	if h.Strict {
+		return Base64Decode(src)
+	}
+	return Base64DecodeNotStrict(src)
+}
+
+var DefaultBase64 = NewDefaultBase64Handler(true)
