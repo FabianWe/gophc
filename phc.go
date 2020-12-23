@@ -82,13 +82,12 @@ func (err *PHCError) Unwrap() error {
 }
 
 var (
-	ErrInvalidPHCStructure         = errors.New("invalid phc syntax")
-	ErrInvalidFunctionName         = errors.New("invalid function name")
-	ErrInvalidParameterName        = errors.New("invalid parameter name")
-	ErrInvalidParameterValue       = errors.New("invalid parameter value")
-	ErrMissingParameterValue       = errors.New("no value for parameter given")
-	ErrNonOptionalParameterMissing = errors.New("non optional parameter is missing")
-	ErrBase64Decode                = errors.New("error decoding base64")
+	ErrInvalidPHCStructure   = errors.New("invalid phc syntax")
+	ErrInvalidFunctionName   = errors.New("invalid function name")
+	ErrInvalidParameterName  = errors.New("invalid parameter name")
+	ErrInvalidParameterValue = errors.New("invalid parameter value")
+	ErrMissingParameterValue = errors.New("no value for parameter given")
+	ErrBase64Decode          = errors.New("error decoding base64")
 )
 
 func formatIntInterval(min, max int) string {
@@ -157,16 +156,6 @@ func (err base64DecodeErrorWrapper) Unwrap() error {
 
 func (err base64DecodeErrorWrapper) Is(target error) bool {
 	return target == ErrBase64Decode
-}
-
-func newNonOptionalParameterMissingError(parameterName string) error {
-	return NewPHCError(fmt.Sprintf("parameter \"%s\"", parameterName), ErrNonOptionalParameterMissing)
-}
-
-type PHCParameterDescription struct {
-	Name     string
-	Default  string
-	Optional bool
 }
 
 type PHCParser struct {
