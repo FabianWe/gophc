@@ -57,7 +57,7 @@ func (phc *ScryptPHC) ValidateParameters() error {
 	return nil
 }
 
-var ScryptPHCSchema *PHCSchema = &PHCSchema{
+var ScryptPHCSchema = &PHCSchema{
 	FunctionNames: []string{"scrypt"},
 	ParameterDescriptions: []*PHCParameterDescription{
 		{
@@ -131,7 +131,7 @@ func DecodeScrypt(phcString string) (*ScryptPHC, error) {
 	}
 	// just an assertion, should never happen
 	if len(instance.Parameters) != 3 {
-		return nil, fmt.Errorf("internal error: expected exactly 3 variables, got %d instead", len(instance.Parameters))
+		return nil, fmt.Errorf("internal error: expected exactly 3 parameters, got %d instead", len(instance.Parameters))
 	}
 	lnParam := instance.Parameters[0]
 	rParam := instance.Parameters[1]

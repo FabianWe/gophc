@@ -84,3 +84,14 @@ func DecodeUnsignedString(s string, strict bool, bitSize int) (uint64, error) {
 	}
 	return strconv.ParseUint(s, 10, bitSize)
 }
+
+func decodeNoneZeroUnsignedString(s string, strict bool, bitSize int) (uint64, error) {
+	res, err := DecodeUnsignedString(s, strict, bitSize)
+	if err != nil {
+		return 0, err
+	}
+	if res == 0 {
+		return 0, errors.New("value must be at least 1, got 0")
+	}
+	return res, nil
+}
