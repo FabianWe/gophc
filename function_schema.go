@@ -27,13 +27,35 @@ var (
 	ErrUnmatchedParameterName      = errors.New("unmatched parameter parsed")
 )
 
+func NewMismatchedFunctionNameError(gotName string, expectedNames ...string) error {
+	gotNamePart := fmt.Sprintf("got name \"%s\"", gotName)
+	var message string
+	if len(expectedNames) == 1 {
+		message = gotName + fmt.Sprintf(" expected name \"%s\"", gotNamePart)
+	} else {
+		message = gotName + " expected name in [" + strings.Join(expectedNames, ", ") + "]"
+	}
+	return NewPHCError(message, ErrMismatchedFunctionName)
+}
+
 type parameterValueErrorWrapper struct {
-	parameterName string
-	err           error
+	// number elements > 0
+	parameterNames []string
+	err            error
 }
 
 func (err parameterValueErrorWrapper) Error() string {
-	return fmt.Sprintf("validation of parameter \"%s\" failed: %s", err.parameterName, err.err.Error())
+	var paramNamePrefix string
+	if len(err.parameterNames) == 1 {
+		paramNamePrefix = fmt.Sprintf("validation of parameter \"%s\" failed", err.parameterNames[0])
+	} else {
+		paramNamePrefix = fmt.Sprintf("validation of parameters [%s] failed", strings.Join(err.parameterNames, ", "))
+	}
+	if err.err == nil {
+		return paramNamePrefix
+	} else {
+		return paramNamePrefix + ": " + err.err.Error()
+	}
 }
 
 func (err parameterValueErrorWrapper) Unwrap() error {
@@ -44,12 +66,32 @@ func (err parameterValueErrorWrapper) Is(target error) bool {
 	return target == ErrParameterValueValidation
 }
 
+func wrapParameterValueErrorToPHCError(message, parameterName string, sourceErr error) error {
+	wrappedErr := parameterValueErrorWrapper{
+		parameterNames: []string{parameterName},
+		err:            sourceErr,
+	}
+	return NewPHCError(message, wrappedErr)
+}
+
+func wrapMultipleParametersValueErrorToPHCError(message string, sourceErr error, parameterNames ...string) error {
+	wrappedErr := parameterValueErrorWrapper{
+		parameterNames: parameterNames,
+		err:            sourceErr,
+	}
+	return NewPHCError(message, wrappedErr)
+}
+
 type ValueValidatorFunc func(value string) error
 
 func ValueCharacterValidator(value string) error {
 	if onlyValidRunes, invalidRune := validateRuneFunc(isValidParameterValueRune, value); !onlyValidRunes {
 		return fmt.Errorf("parameter value contains invalid character \"%s\": %w", string(invalidRune), ErrInvalidParameterValue)
 	}
+	return nil
+}
+
+func NoValueValidator(value string) error {
 	return nil
 }
 
@@ -68,8 +110,9 @@ func (description *PHCParameterDescription) GetValueValidatorFunc() ValueValidat
 }
 
 type PHCSchema struct {
-	FunctionName          string
+	FunctionNames         []string
 	ParameterDescriptions []*PHCParameterDescription
+	Decoder               Base64Decoder
 }
 
 // parseParameter parses a parameter from a string of the form "name=value".
@@ -103,7 +146,7 @@ func parseParameters(s string) ([]ParameterValuePair, error) {
 }
 
 // TODO: check if PHCError is used correctly everywhere
-func (schema PHCSchema) matchParameters(parsedParameters []ParameterValuePair) ([]ParameterValuePair, error) {
+func (schema *PHCSchema) matchParameters(parsedParameters []ParameterValuePair) ([]ParameterValuePair, error) {
 	descriptionIndex, parsedIndex := 0, 0
 	n, m := len(schema.ParameterDescriptions), len(parsedParameters)
 	res := make([]ParameterValuePair, n)
@@ -117,11 +160,7 @@ func (schema PHCSchema) matchParameters(parsedParameters []ParameterValuePair) (
 			// in case of a match: validate the value
 			validatorFunc := nextDescription.GetValueValidatorFunc()
 			if validationErr := validatorFunc(nextParsed.Value); validationErr != nil {
-				wrappedErr := parameterValueErrorWrapper{
-					parameterName: nextDescription.Name,
-					err:           validationErr,
-				}
-				return nil, NewPHCError("value validation failed", wrappedErr)
+				return nil, wrapParameterValueErrorToPHCError("value validation failed", nextDescription.Name, validationErr)
 			}
 			// add to result
 			// parsed parameter always have IsSet = true
@@ -167,7 +206,15 @@ func (schema PHCSchema) matchParameters(parsedParameters []ParameterValuePair) (
 	return res, nil
 }
 
-func (schema PHCSchema) Decode(s string) (PHCInstance, error) {
+func (schema *PHCSchema) decodeBase64(s string) ([]byte, error) {
+	res, base64Err := schema.Decoder.Base64Decode([]byte(s))
+	if base64Err != nil {
+		return nil, newBase64DecodeErrorWrapper(base64Err)
+	}
+	return res, nil
+}
+
+func (schema *PHCSchema) Decode(s string) (PHCInstance, error) {
 	res := PHCInstance{}
 	// split strings on "$" sign
 	// the string must start with a "$", so we do that here already
@@ -186,11 +233,22 @@ func (schema PHCSchema) Decode(s string) (PHCInstance, error) {
 		}
 	}
 
-	if functionName := split[0]; functionName != schema.FunctionName {
-		return res, NewPHCError(fmt.Sprintf("expected function name \"%s\"", schema.FunctionName), ErrMismatchedFunctionName)
+	functionName := split[0]
+
+	// check if functionName is valid in schema
+	foundFunctionName := false
+	for _, potentialFuncName := range schema.FunctionNames {
+		if potentialFuncName == functionName {
+			foundFunctionName = true
+			break
+		}
 	}
 
-	res.Function = schema.FunctionName
+	if !foundFunctionName {
+		return res, NewMismatchedFunctionNameError(functionName, schema.FunctionNames...)
+	}
+
+	res.Function = functionName
 
 	split = split[1:]
 	// now split might be empty, so we still want to check the parameters
@@ -213,6 +271,37 @@ func (schema PHCSchema) Decode(s string) (PHCInstance, error) {
 	}
 	res.Parameters = finalParams
 	// now parse salt / hash (if given)
+	if len(split) == 0 {
+		return res, nil
+	}
+	salt := split[0]
+	res.SaltString = salt
+	saltDecoded, saltDecodeErr := schema.decodeBase64(salt)
+	if saltDecodeErr != nil {
+		return res, NewPHCError("error decoding salt from base64 string", saltDecodeErr)
+	}
+	res.Salt = saltDecoded
+	split = split[1:]
+
+	if len(split) == 0 {
+		return res, nil
+	}
+
+	// now parse the hash
+	hash := split[0]
+	res.HashString = hash
+	hashDecoded, hashErr := schema.decodeBase64(hash)
+	if hashErr != nil {
+		return res, NewPHCError("error decoding hash from base64", hashErr)
+	}
+	res.Hash = hashDecoded
+	split = split[1:]
+
+	// now everything is fine... but if we still have something left in the split result this means that something
+	// is wrong in the syntax
+	if len(split) != 0 {
+		return res, NewPHCError("to many '$' in input string", ErrInvalidPHCStructure)
+	}
 
 	return res, nil
 }
